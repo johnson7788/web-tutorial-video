@@ -1,0 +1,8 @@
+Background music: "Meditation Impromptu 02"
+Composer: Kevin MacLeod (incompetech.com)
+Source: https://incompetech.com/music/royalty-free/mp3-royaltyfree/Meditation%20Impromptu%2002.mp3
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+
+Suggested attribution for published tutorials:
+Music: "Meditation Impromptu 02" by Kevin MacLeod (incompetech.com), licensed under CC BY 4.0.
