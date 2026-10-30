@@ -122,9 +122,12 @@ def main() -> None:
     parser.add_argument("--output", required=True, help="输出 MP4")
     parser.add_argument("--music", default="builtin", help="音乐路径；builtin 使用随技能提供的默认配乐，none 关闭音乐")
     parser.add_argument("--volume", type=float, default=0.12, help="背景音乐音量，默认 0.12")
+    parser.add_argument("--fade-out", type=float, default=1.2, help="结尾缓慢变黑的时长（秒），默认 1.2；设为 0 可关闭")
     parser.add_argument("--subtitle-position", choices=["bottom", "top"], default="bottom")
     parser.add_argument("--crf", type=int, default=20, help="H.264 画质参数，默认 20")
     args = parser.parse_args()
+    if args.fade_out < 0:
+        raise SystemExit("结尾淡出时长不能为负数。")
 
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
         raise SystemExit("需要 ffmpeg 和 ffprobe。")
@@ -165,24 +168,34 @@ def main() -> None:
         else:
             command += ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]
 
-        filters = []
-        last = "0:v:0"
+        filters = ["[0:v]setpts=PTS-STARTPTS[v0]"]
+        last = "[v0]"
         for index, (cue, _) in enumerate(cue_files, 1):
-            if index == 1:
-                last = "[0:v]"
             filters.append(f"[{index}:v]format=rgba[c{index}]")
             filters.append(
                 f"{last}[c{index}]overlay=0:0:enable='between(t,{cue['start']:.3f},{cue['end']:.3f})'[v{index}]"
             )
             last = f"[v{index}]"
 
+        # 留出约一帧纯黑，确保播放器的最后一帧不会停在接近黑色的灰帧。
+        black_hold = min(0.04, info["duration"] / 10)
+        fade_duration = min(args.fade_out, max(0.0, info["duration"] - black_hold))
+        if fade_duration > 0:
+            fade_start = max(0.0, info["duration"] - black_hold - fade_duration)
+            filters.append(
+                f"{last}fade=t=out:st={fade_start:.3f}:d={fade_duration:.3f}:color=black[vout]"
+            )
+            video_output = "[vout]"
+        else:
+            video_output = last
+
         audio_index = len(cue_files) + 1
-        fade = min(1.5, info["duration"] / 5)
-        fade_out = max(0.0, info["duration"] - fade)
+        audio_fade = min(args.fade_out if args.fade_out > 0 else 1.0, info["duration"])
+        audio_fade_start = max(0.0, info["duration"] - audio_fade)
         filters.append(
             f"[{audio_index}:a]atrim=0:{info['duration']:.3f},asetpts=PTS-STARTPTS,"
-            f"volume={args.volume:.4f},afade=t=in:st=0:d={fade:.3f},"
-            f"afade=t=out:st={fade_out:.3f}:d={fade:.3f}[a]"
+            f"volume={args.volume:.4f},afade=t=in:st=0:d={min(1.0, info['duration'] / 5):.3f},"
+            f"afade=t=out:st={audio_fade_start:.3f}:d={audio_fade:.3f}[a]"
         )
         music_credit = (
             "Background music: Meditation Impromptu 02 by Kevin MacLeod "
@@ -190,7 +203,7 @@ def main() -> None:
         )
         command += [
             "-filter_complex", ";".join(filters),
-            "-map", last, "-map", "[a]",
+            "-map", video_output, "-map", "[a]",
             "-c:v", "libx264", "-preset", "medium", "-crf", str(args.crf),
             "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
             "-movflags", "+faststart", "-t", f"{info['duration']:.3f}",

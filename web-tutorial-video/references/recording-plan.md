@@ -49,6 +49,6 @@ python3 scripts/make-srt.py raw/tutorial.json tutorial.srt
 python3 scripts/render-video.py --video raw/tutorial.webm --srt tutorial.srt --output tutorial.mp4
 ```
 
-`render-video.py` 默认使用技能内置配乐；需要静音时传 `--music none`，使用其他曲目时传 `--music 路径`。
+`render-video.py` 默认使用技能内置配乐，并让最后 1.2 秒缓慢淡到全黑；需要静音时传 `--music none`，使用其他曲目时传 `--music 路径`，调整结尾时长时传 `--fade-out 秒数`。
 
 如果网页在本机浏览器中能打开、但 Playwright 报 `ERR_CONNECTION_CLOSED`，在 `browser.args` 中加入 `--no-proxy-server`、`--disable-http2` 和 `--disable-quic` 后重试。

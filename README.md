@@ -9,6 +9,7 @@
 - 根据操作节点记录字幕时间，输出独立的 UTF-8 `SRT` 文件。
 - 自动为中文字幕换行并烧录到视频画面。
 - 默认加入低音量纯音乐，也可以关闭音乐或换成用户提供的曲目。
+- 默认让最后 1.2 秒缓慢淡到全黑，并与音乐淡出同步。
 - 输出兼容性较好的 H.264/AAC MP4。
 
 ## 目录结构
@@ -129,6 +130,18 @@ python3 web-tutorial-video/scripts/render-video.py \
   --music ./my-music.mp3 \
   --output tutorial-custom-music.mp4
 ```
+
+结尾画面默认在最后 1.2 秒缓慢变黑，背景音乐同步淡出。调整淡出时长：
+
+```bash
+python3 web-tutorial-video/scripts/render-video.py \
+  --video raw/tutorial.webm \
+  --srt tutorial.srt \
+  --fade-out 2 \
+  --output tutorial.mp4
+```
+
+如果不需要淡出效果，可以传 `--fade-out 0`。
 
 ## 默认交付
 
